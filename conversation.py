@@ -14,16 +14,20 @@ import os
 LENGTH = 150
 TEMPERATURE = 0.8
 TOP_P = 0.8
-ANSWERER = "Robotexperten Klara"
-Q_SAVE = 2
+Q_SAVE = 0
 
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 THEMES = {
-    "after-death": {"meta": "Låt mig besvara denna fråga dystert:", "asker": "Filosofen Josie"},
-    "climate": {"meta": False, "asker": "Klimatforskaren Josie"},
-    "eternal-life": {"meta": False, "asker": "Filosofen Josie"},
-    "exoplanets": {"meta": False, "asker": "Astronauten Josie"},
-    "sun": {"meta": False, "asker": "Filosofen Josie"},
+    "dev": {"meta": False, "asker": "Filosofen Josie", "answerer": "Robotexperten Klara", "beta": ""},
+    "after-death": {
+        "meta": "Låt mig besvara denna fråga dystert:",
+        "asker": "Filosofen Josie",
+        "answerer": "Robotexperten Klara",
+    },
+    "climate": {"meta": False, "asker": "Klimatforskaren Josie", "answerer": "Robotexperten Klara"},
+    "eternal-life": {"meta": False, "asker": "Filosofen Josie", "answerer": "Robotexperten Klara"},
+    "exoplanets": {"meta": False, "asker": "Astronauten Josie", "answerer": "Robotexperten Klara"},
+    "sun": {"meta": False, "asker": "Filosofen Josie", "answerer": "Robotexperten Klara"},
 }
 STOP_SIGNS = ",.?!"
 conversation = []
@@ -53,7 +57,7 @@ def load_initial_prompt(theme):
     return contents
 
 
-def create_prompt(initial_prompt, asker, past_blocks, question, meta=False):
+def create_prompt(initial_prompt, asker, answerer, past_blocks, question, meta=False):
 
     # Always start with initial prompt
     prompt = initial_prompt
@@ -67,16 +71,16 @@ def create_prompt(initial_prompt, asker, past_blocks, question, meta=False):
 
         prompt += f"{asker}: {past_blocks[-i][0]}"
         prompt += "\n\n"
-        prompt += f"{ANSWERER}: {past_blocks[-i][1]}"
+        prompt += f"{answerer}: {past_blocks[-i][1]}"
         prompt += "\n\n"
 
     prompt += f"{asker}: {question}"
     prompt += "\n\n"
 
     if meta:
-        prompt += f"{ANSWERER}: {meta}"
+        prompt += f"{answerer}: {meta}"
     else:
-        prompt += f"{ANSWERER}:"
+        prompt += f"{answerer}:"
 
     return prompt
 
@@ -137,7 +141,7 @@ print(colored(f'"{intro}" (s. 49)', "green", attrs=["bold"]))
 print()
 
 print(colored(f"TEMAN", "green", attrs=["bold"]))
-print(" • standard")
+print(" • dev")
 print(" • after-death")
 print(" • climate")
 print(" • eternal-life")
@@ -152,13 +156,16 @@ INITIAL_PROMPT = load_initial_prompt(theme)
 if theme in THEMES:
     meta = THEMES[theme]["meta"]
     ASKER = THEMES[theme]["asker"]
+    ANSWERER = THEMES[theme]["answerer"]
 else:
+    theme = False
     meta = False
     ASKER = "Filosofen Josie"
+    ANSWERER = "Robotexperten Klara"
 
 
-print(f"Temat {colored(theme, 'yellow')} vald.")
-print()
+# print(f"Temat {colored(theme, 'yellow')} vald.")
+# print()
 
 # INSTRUCTIONS
 print(colored(f"INSTRUKTIONER", "green", attrs=["bold"]))
@@ -203,7 +210,9 @@ while True:
         contents = ""
         contents += "*" * 20
         contents += "\n\n"
-        contents += create_prompt(INITIAL_PROMPT, ASKER, conversation, "", False)[: -len(completion_string)].strip()
+        contents += create_prompt(INITIAL_PROMPT, ASKER, ANSWERER, conversation, "", False)[
+            : -len(completion_string)
+        ].strip()
         contents += "\n\n"
         contents += "*" * 20
         contents += "\n\n"
@@ -215,8 +224,14 @@ while True:
 
         continue
 
+    # Process question
+    question = question.strip()
+    if theme and "beta" in THEMES[theme]:
+        # add beta to end
+        question += THEMES[theme]["beta"]
+
     # Construct the prompt
-    prompt = create_prompt(INITIAL_PROMPT, ASKER, conversation, question, meta)
+    prompt = create_prompt(INITIAL_PROMPT, ASKER, ANSWERER, conversation, question, meta)
 
     # Generate an answer
     answer = generate(prompt, LENGTH, TEMPERATURE, TOP_P)
